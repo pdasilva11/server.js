@@ -1,11 +1,25 @@
-uses: BeyondTrust/secrets-safe-action@v1
+name: Retrieve and Echo Vault Secret
 
-env:
-   API_URL: ${{vars.API_URL}}
-   VERIFY_CA: ${{vars.VERIFY_CA}}
-   CLIENT_ID: ${{secrets.CLIENT_ID}}
-   CLIENT_SECRET: ${{secrets.CLIENT_SECRET}}
-   CERTIFICATE: ${{secrets.CERTIFICATE}}
-   CERTIFICATE_KEY: ${{secrets.CERTIFICATE_KEY}}
-with: 
-   SECRET_PATH: '{"path": "nav/test", "output_id": "test"}'
+on: [workflow_dispatch]
+
+jobs:
+  fetch-secret:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Retrieve secret using BeyondTrust Secrets Safe Action
+        id: secretsafe
+        uses: BeyondTrust/secrets-safe-action@v1
+        env:
+          API_URL: ${{ vars.API_URL }}
+          VERIFY_CA: ${{ vars.VERIFY_CA }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          CERTIFICATE: ${{ secrets.CERTIFICATE }}
+          CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
+        with:
+          SECRET_PATH: '{"path": "nav/test", "output_id": "test"}'
+
+      - name: Echo the secret
+        run: |
+          echo "Secret from vault (test): ${{ steps.test.outputs.secret }}"
