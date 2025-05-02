@@ -1,0 +1,63 @@
+name: Vault to Kubernetes Deployment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted  
+
+    env:
+      VAULT_API_URL: ${{ secrets.BSAFE_API_URL }}
+      VAULT_CLIENT_ID: ${{ secrets.BSAFE_CLIENT_ID }}
+      VAULT_CLIENT_SECRET: ${{ secrets.BSAFE_CLIENT_SECRET }}
+      KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq kubectl
+
+    - name: Set up kubeconfig
+      run: |
+        echo "${KUBECONFIG_DATA}" > kubeconfig
+        export KUBECONFIG=$PWD/kubeconfig
+
+    - name: Authenticate with Vault
+      id: vault-auth
+      run: |
+        response=$(curl -sk -X POST "$VAULT_API_URL" \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          -d "grant_type=client_credentials" \
+          -d "client_id=$VAULT_CLIENT_ID" \
+          -d "client_secret=$VAULT_CLIENT_SECRET")
+        token=$(echo "$response" | jq -r '.access_token')
+        echo "token=$token" >> $GITHUB_OUTPUT
+
+    - name: Retrieve secret from Vault
+      id: vault-secret
+      run: |
+        secret_response=$(curl -sk -X POST "$VAULT_API_URL/api/v1/secrets" \
+          -H "Authorization: Bearer ${{ steps.vault-auth.outputs.token }}" \
+          -H "Content-Type: application/json" \
+          -d '{"path": "nav/test"}')
+        secret=$(echo "$secret_response" | jq -r '.value')
+        echo "SECRET_VALUE=$secret" >> $GITHUB_ENV
+
+    - name: Deploy to Kubernetes with secret
+      run: |
+        cat <<EOF | kubectl apply -f -
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: vault-test-pod
+        spec:
+          containers:
+          - name: app
+            image: busybox
+            command: ["sh", "-c", "echo My secret is \$SECRET_ENV; sleep 3600"]
+            env:
+            - name: SECRET_ENV
+              value: "${SECRET_VALUE}"
+        EOF
