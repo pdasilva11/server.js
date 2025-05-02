@@ -1,15 +1,13 @@
+---
 name: Retrieve Vault Secret via POST Body
-
-on: [workflow_dispatch]
-
+on:
+  - workflow_dispatch
 jobs:
   fetch-vault-secret:
     runs-on: ubuntu-latest
-
     steps:
       - name: Install dependencies
         run: sudo apt-get install -y jq
-
       - name: Authenticate with Vault
         id: auth
         run: |
@@ -21,11 +19,11 @@ jobs:
 
           ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.access_token')
           echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
-
       - name: Retrieve secret from path nav/test
         id: test
-        run: |
+        run: >
           REQUEST_BODY=$(jq -n --arg path "nav/test" '{path: $path}')
+
 
           SECRET_RESPONSE=$(curl -sk -X POST "${{ secrets.BSAFE_API_URL }}/api/v1/secrets" \
             -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
@@ -33,8 +31,10 @@ jobs:
             -d "$REQUEST_BODY")
 
           SECRET_VALUE=$(echo "$SECRET_RESPONSE" | jq -r '.value')
-          echo "::add-mask::$SECRET_VALUE"
-          echo "secret=$SECRET_VALUE" >> $GITHUB_OUTPUT
 
+          echo "::add-mask::$SECRET_VALUE"
+
+          echo "secret=$SECRET_VALUE" >> $GITHUB_OUTPUT
       - name: Use the secret
-        run: echo "Secret from vault (test): ${{ steps.test.outputs.secret }}"
+        run: |
+          echo "Secret from vault (test): ${{ steps.test.outputs.secret }}"
