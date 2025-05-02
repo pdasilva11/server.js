@@ -1,40 +1,11 @@
----
-name: Retrieve Vault Secret via POST Body
-on:
-  - workflow_dispatch
-jobs:
-  fetch-vault-secret:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install dependencies
-        run: sudo apt-get install -y jq
-      - name: Authenticate with Vault
-        id: auth
-        run: |
-          AUTH_RESPONSE=$(curl -sk -X POST "${{ secrets.BSAFE_API_URL }}" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=client_credentials" \
-            -d "client_id=${{ secrets.BSAFE_CLIENT_ID }}" \
-            -d "client_secret=${{ secrets.BSAFE_CLIENT_SECRET }}")
+uses: BeyondTrust/secrets-safe-action@v1
 
-          ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.access_token')
-          echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
-      - name: Retrieve secret from path nav/test
-        id: test
-        run: >
-          REQUEST_BODY=$(jq -n --arg path "nav/test" '{path: $path}')
-
-
-          SECRET_RESPONSE=$(curl -sk -X POST "${{ secrets.BSAFE_API_URL }}/api/v1/secrets" \
-            -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
-            -H "Content-Type: application/json" \
-            -d "$REQUEST_BODY")
-
-          SECRET_VALUE=$(echo "$SECRET_RESPONSE" | jq -r '.value')
-
-          echo "::add-mask::$SECRET_VALUE"
-
-          echo "secret=$SECRET_VALUE" >> $GITHUB_OUTPUT
-      - name: Use the secret
-        run: |
-          echo "Secret from vault (test): ${{ steps.test.outputs.secret }}"
+env:
+   API_URL: ${{vars.API_URL}}
+   VERIFY_CA: ${{vars.VERIFY_CA}}
+   CLIENT_ID: ${{secrets.CLIENT_ID}}
+   CLIENT_SECRET: ${{secrets.CLIENT_SECRET}}
+   CERTIFICATE: ${{secrets.CERTIFICATE}}
+   CERTIFICATE_KEY: ${{secrets.CERTIFICATE_KEY}}
+with: 
+   SECRET_PATH: '{"path": "nav/test", "output_id": "test"}'
