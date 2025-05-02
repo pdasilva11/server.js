@@ -1,4 +1,42 @@
-    - name: Create Pod YAML and save to /opt/tmp
+name: Vault Secret to Mounted File in Pod
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    env:
+      VAULT_API_URL: ${{ secrets.BSAFE_API_URL }}
+      VAULT_CLIENT_ID: ${{ secrets.BSAFE_CLIENT_ID }}
+      VAULT_CLIENT_SECRET: ${{ secrets.BSAFE_CLIENT_SECRET }}
+
+    steps:
+    - name: Authenticate with Vault
+      id: vault-auth
+      run: |
+        response=$(curl -sk -X POST "$VAULT_API_URL" \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          -d "grant_type=client_credentials" \
+          -d "client_id=$VAULT_CLIENT_ID" \
+          -d "client_secret=$VAULT_CLIENT_SECRET")
+        token=$(echo "$response" | jq -r '.access_token')
+        echo "token=$token" >> $GITHUB_OUTPUT
+
+    - name: Retrieve secret from Vault
+      id: vault-secret
+      run: |
+        secret_response=$(curl -sk -X POST "$VAULT_API_URL/api/v1/secrets" \
+          -H "Authorization: Bearer ${{ steps.vault-auth.outputs.token }}" \
+          -H "Content-Type: application/json" \
+          -d '{"path": "nav/test"}')
+        secret=$(echo "$secret_response" | jq -r '.value')
+        echo "$secret" > /tmp/secret.txt
+        kubectl delete secret vault-secret --ignore-not-found
+        kubectl create secret generic vault-secret --from-file=secret.txt=/tmp/secret.txt
+
+    - name: Create Pod YAML with mounted secret and save to /opt/tmp
       run: |
         cat <<EOF | sudo tee /opt/tmp/vault-test-pod.yaml > /dev/null
         apiVersion: v1
@@ -10,10 +48,15 @@
           containers:
           - name: app
             image: busybox
-            command: ["sh", "-c", "echo My secret is \$SECRET_ENV; sleep 3600"]
-            env:
-            - name: SECRET_ENV
-              value: "${SECRET_VALUE}"
+            command: ["sh", "-c", "cat /vault/secret.txt; sleep 3600"]
+            volumeMounts:
+            - name: secret-vol
+              mountPath: /vault
+              readOnly: true
+          volumes:
+          - name: secret-vol
+            secret:
+              secretName: vault-secret
         EOF
 
     - name: Confirm YAML file exists
