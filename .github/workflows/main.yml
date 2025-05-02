@@ -22,4 +22,4 @@ jobs:
 
       - name: Echo the secret
         run: |
-          echo "Secret from vault (test): ${{ steps.test.outputs.secret }}"
+          echo "!!! DEBUG: Secret from nav/test: ${{ steps.secretsafe.outputs.test }}"
