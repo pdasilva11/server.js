@@ -37,4 +37,4 @@ jobs:
           echo "secret=$SECRET_VALUE" >> $GITHUB_OUTPUT
 
       - name: Use the secret
-        run: echo "Secret from vault (test): ${{ steps.test.outputs.secret }}"
+        run: echo "Secret from vault (test): ${{ steps.test.outputs.secret }}
