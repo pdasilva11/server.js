@@ -13,7 +13,7 @@ jobs:
     - name: Authenticate with Vault
       id: auth
       run: |
-        AUTH_RESPONSE=$(curl -sk -X POST "${{ secrets.BSAFE_API_URL }} \
+        AUTH_RESPONSE=$(curl -sk -X POST "${{ secrets.BSAFE_API_URL }}" \
           -H "Content-Type: application/x-www-form-urlencoded" \
           -d "grant_type=client_credentials" \
           -d "client_id=${{ secrets.BSAFE_CLIENT_ID }}" \
@@ -25,22 +25,16 @@ jobs:
     - name: Retrieve secret from path nav/test
       id: test
       run: |
-        REQUEST_BODY=$(cat <<EOF
-        {
-          "path": "nav/test"
-        }
-EOF
-        )
+        REQUEST_BODY=$(jq -n --arg path "nav/test" '{path: $path}')
 
         SECRET_RESPONSE=$(curl -sk -X POST "${{ secrets.BSAFE_API_URL }}/api/v1/secrets" \
           -H "Authorization: Bearer ${{ steps.auth.outputs.access_token }}" \
           -H "Content-Type: application/json" \
           -d "$REQUEST_BODY")
 
-        SECRET_VALUE=$(echo "$SECRET_RESPONSE" | jq -r '.value') # Adjust as needed
+        SECRET_VALUE=$(echo "$SECRET_RESPONSE" | jq -r '.value')
         echo "::add-mask::$SECRET_VALUE"
         echo "secret=$SECRET_VALUE" >> $GITHUB_OUTPUT
 
     - name: Use the secret
       run: echo "Secret from vault (test): ${{ steps.test.outputs.secret }}"
-
