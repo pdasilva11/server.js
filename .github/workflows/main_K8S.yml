@@ -7,63 +7,56 @@ jobs:
   deploy:
     runs-on: self-hosted
 
-    env:
-      VAULT_API_URL: ${{ secrets.BSAFE_API_URL }}
-      VAULT_CLIENT_ID: ${{ secrets.BSAFE_CLIENT_ID }}
-      VAULT_CLIENT_SECRET: ${{ secrets.BSAFE_CLIENT_SECRET }}
-
     steps:
-    - name: Authenticate with Vault
-      id: vault-auth
-      run: |
-        response=$(curl -sk -X POST "$VAULT_API_URL" \
-          -H "Content-Type: application/x-www-form-urlencoded" \
-          -d "grant_type=client_credentials" \
-          -d "client_id=$VAULT_CLIENT_ID" \
-          -d "client_secret=$VAULT_CLIENT_SECRET")
-        token=$(echo "$response" | jq -r '.access_token')
-        echo "token=$token" >> $GITHUB_OUTPUT
+      - name: Retrieve secret using BeyondTrust Secrets Safe Action
+        id: secretsafe
+        uses: BeyondTrust/secrets-safe-action@v1
+        env:
+          API_URL: ${{ vars.API_URL }}
+          VERIFY_CA: ${{ vars.VERIFY_CA }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          CERTIFICATE: ${{ secrets.CERTIFICATE }}
+          CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
+        with:
+          SECRET_PATH: '{"path": "nav/test", "output_id": "test"}'
 
-    - name: Retrieve secret from Vault
-      id: vault-secret
-      run: |
-        secret_response=$(curl -sk -X POST "$VAULT_API_URL/api/v1/secrets" \
-          -H "Authorization: Bearer ${{ steps.vault-auth.outputs.token }}" \
-          -H "Content-Type: application/json" \
-          -d '{"path": "nav/test"}')
-        secret=$(echo "$secret_response" | jq -r '.value')
-        echo "$secret" > /tmp/secret.txt
-        kubectl delete secret vault-secret --ignore-not-found
-        kubectl create secret generic vault-secret --from-file=secret.txt=/tmp/secret.txt
+      - name: Extract secret value and create Kubernetes secret
+        run: |
+          secret_response="${{ steps.secretsafe.outputs.secret }}"
+          secret=$(echo "$secret_response" | jq -r '.value')
+          echo "$secret" > /tmp/secret.txt
+          kubectl delete secret vault-secret --ignore-not-found
+          kubectl create secret generic vault-secret --from-file=secret.txt=/tmp/secret.txt
 
-    - name: Create Pod YAML with mounted secret and save to /opt/tmp
-      run: |
-        cat <<EOF | sudo tee /opt/tmp/vault-test-pod.yaml > /dev/null
-        apiVersion: v1
-        kind: Pod
-        metadata:
-          name: vault-test-pod
-          namespace: default
-        spec:
-          containers:
-          - name: app
-            image: busybox
-            command: ["sh", "-c", "cat /vault/secret.txt; sleep 3600"]
-            volumeMounts:
+      - name: Create Pod YAML with mounted secret and save to /opt/tmp
+        run: |
+          cat <<EOF | sudo tee /opt/tmp/vault-test-pod.yaml > /dev/null
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: vault-test-pod
+            namespace: default
+          spec:
+            containers:
+            - name: app
+              image: busybox
+              command: ["sh", "-c", "cat /vault/secret.txt; sleep 3600"]
+              volumeMounts:
+              - name: secret-vol
+                mountPath: /vault
+                readOnly: true
+            volumes:
             - name: secret-vol
-              mountPath: /vault
-              readOnly: true
-          volumes:
-          - name: secret-vol
-            secret:
-              secretName: vault-secret
-        EOF
+              secret:
+                secretName: vault-secret
+          EOF
 
-    - name: Confirm YAML file exists
-      run: |
-        ls -l /opt/tmp/vault-test-pod.yaml
-        cat /opt/tmp/vault-test-pod.yaml
+      - name: Confirm YAML file exists
+        run: |
+          ls -l /opt/tmp/vault-test-pod.yaml
+          cat /opt/tmp/vault-test-pod.yaml
 
-    - name: Deploy Pod using kubectl
-      run: |
-        kubectl apply -f /opt/tmp/vault-test-pod.yaml
+      - name: Deploy Pod using kubectl
+        run: |
+          kubectl apply -f /opt/tmp/vault-test-pod.yaml
