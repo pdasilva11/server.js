@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    runs-on: self-hosted
-
+  retrieve-secret:
+    runs-on: ubuntu-latest
     steps:
       - name: Retrieve secret using BeyondTrust Secrets Safe Action
         id: secretsafe
@@ -29,6 +28,10 @@ jobs:
           kubectl delete secret vault-secret --ignore-not-found
           kubectl create secret generic vault-secret --from-file=secret.txt=/tmp/secret.txt
 
+  deploy-pod:
+    runs-on: self-hosted
+    needs: retrieve-secret
+    steps:
       - name: Create Pod YAML with BeyondTrust container and mounted secret
         run: |
           cat <<EOF > /opt/tmp/vault-test-pod.yaml
