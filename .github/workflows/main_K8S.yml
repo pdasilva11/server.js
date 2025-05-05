@@ -28,7 +28,7 @@ jobs:
           echo "$secret" > /opt/tmp/secret.txt
       - name: Upload secret file as an artifact
         env: 
-          API_URL: ${{ vars.API_URL }
+          API_URL: ${{ vars.API_URL }}
         uses: BeyondTrust/secrets-safe-action@v1
         with:
           name: secret-file
