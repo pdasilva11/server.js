@@ -32,32 +32,32 @@ jobs:
       - name: Create Pod YAML with BeyondTrust container and mounted secret
         run: |
           cat <<EOF | sudo tee /opt/tmp/vault-test-pod.yaml > /dev/null
-          apiVersion: v1
-          kind: Pod
-          metadata:
-            name: jumpoint-pod
-            namespace: default
-          spec:
-            containers:
-            - name: jumpoint-name
-              image: beyondtrust/sra-jumpoint:1cd9128ba1
-              env:
-              - name: DEPLOY_KEY
-                valueFrom:
-                  secretKeyRef:
-                    name: vault-secret
-                    key: secret.txt
-              volumeMounts:
-              - name: jpt-vol
-                mountPath: /jpt
-              securityContext:
-                capabilities:
-                  add: ["IPC_LOCK"]
-            volumes:
-            - name: jpt-vol
-              hostPath:
-                path: /data  # Replace with your local path
-                type: Directory
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jumpoint-pod
+  namespace: default
+spec:
+  containers:
+  - name: jumpoint-name
+    image: beyondtrust/sra-jumpoint:1cd9128ba1
+    env:
+    - name: DEPLOY_KEY
+      valueFrom:
+        secretKeyRef:
+          name: vault-secret
+          key: secret.txt
+    volumeMounts:
+    - name: jpt-vol
+      mountPath: /jpt
+    securityContext:
+      capabilities:
+        add: ["IPC_LOCK"]
+  volumes:
+  - name: jpt-vol
+    hostPath:
+      path: /data  # Replace with your actual local path
+      type: Directory
 EOF
 
       - name: Confirm YAML file exists
