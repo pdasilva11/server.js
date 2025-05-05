@@ -29,28 +29,36 @@ jobs:
           kubectl delete secret vault-secret --ignore-not-found
           kubectl create secret generic vault-secret --from-file=secret.txt=/tmp/secret.txt
 
-      - name: Create Pod YAML with mounted secret and save to /opt/tmp
+      - name: Create Pod YAML with BeyondTrust container and mounted secret
         run: |
           cat <<EOF | sudo tee /opt/tmp/vault-test-pod.yaml > /dev/null
           apiVersion: v1
           kind: Pod
           metadata:
-            name: vault-test-pod
+            name: jumpoint-pod
             namespace: default
           spec:
             containers:
-            - name: app
-              image: busybox
-              command: ["sh", "-c", "cat /vault/secret.txt; sleep 3600"]
+            - name: jumpoint-name
+              image: beyondtrust/sra-jumpoint:1cd9128ba1
+              env:
+              - name: DEPLOY_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: vault-secret
+                    key: secret.txt
               volumeMounts:
-              - name: secret-vol
-                mountPath: /vault
-                readOnly: true
+              - name: jpt-vol
+                mountPath: /jpt
+              securityContext:
+                capabilities:
+                  add: ["IPC_LOCK"]
             volumes:
-            - name: secret-vol
-              secret:
-                secretName: vault-secret
-          EOF
+            - name: jpt-vol
+              hostPath:
+                path: /data  # Replace with your local path
+                type: Directory
+EOF
 
       - name: Confirm YAML file exists
         run: |
