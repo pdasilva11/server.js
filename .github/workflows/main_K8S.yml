@@ -27,8 +27,8 @@ jobs:
           secret=$(echo "$secret_response" | jq -r '.value')
           echo "$secret" > /opt/tmp/secret.txt
       - name: Debug API_URL value
-        run: |
-          echo "API_URL is set to: $API_URL"
+        env: 
+          API_URL: ${{ vars.API_URL }
 
       - name: Upload secret file as an artifact
         uses: BeyondTrust/secrets-safe-action@v1
