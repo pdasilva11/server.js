@@ -23,6 +23,8 @@ jobs:
   deploy-pod:
     runs-on: self-hosted
     needs: retrieve-secret
+    env:
+      KUBECONFIG: /etc/kubernetes/admin.conf
     steps:
       - name: Extract secret value and create Kubernetes secret
         run: |
