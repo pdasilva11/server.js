@@ -24,13 +24,13 @@ jobs:
         run: |
           secret_response="${{ steps.secretsafe.outputs.secret }}"
           secret=$(echo "$secret_response" | jq -r '.value')
-          echo "$secret" > /tmp/secret.txt
+          echo "$secret" > opt/tmp/secret.txt
 
       - name: Upload secret file as an artifact
         uses: actions/upload-artifact@v3
         with:
           name: secret-file
-          path: /tmp/secret.txt
+          path: /opt/tmp/secret.txt
 
   deploy-pod:
     runs-on: self-hosted
@@ -40,11 +40,11 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: secret-file
-          path: /tmp
+          path: /opt/tmp
 
       - name: Debug Secret Content
         run: |
-          cat /tmp/secret.txt
+          cat /opt/tmp/secret.txt
 
       - name: Check current user and validate kubeconfig
         run: |
