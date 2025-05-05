@@ -21,7 +21,7 @@ jobs:
           SECRET_PATH: '{"path": "nav/test", "output_id": "test"}'
 
   deploy-pod:
-    runs-on: self-hosted
+    runs-on: master-node
     needs: retrieve-secret
     env:
       KUBECONFIG: $HOME/.kube/config
