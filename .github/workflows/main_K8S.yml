@@ -18,7 +18,7 @@ jobs:
           CERTIFICATE: ${{ secrets.CERTIFICATE }}
           CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
         with:
-          SECRET_PATH: '{"path": "nav/test", "output_id": "test"}'
+          SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
 
   deploy-pod:
     runs-on: self-hosted  # Ensure correct runner is specified
