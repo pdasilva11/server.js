@@ -26,6 +26,10 @@ jobs:
     env:
       KUBECONFIG: /etc/kubernetes/admin.conf
     steps:
+      - name: Check current user
+        run: |
+          whoami
+
       - name: Extract secret value and create Kubernetes secret
         run: |
           secret_response="${{ steps.secretsafe.outputs.secret }}"
