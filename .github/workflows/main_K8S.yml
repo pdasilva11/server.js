@@ -22,6 +22,7 @@ jobs:
 
       - name: Extract secret value and create Kubernetes secret file
         run: |
+          mkdir -p /opt/tmp  # Ensure the directory exists
           secret_response="${{ steps.secretsafe.outputs.secret }}"
           secret=$(echo "$secret_response" | jq -r '.value')
           echo "$secret" > /opt/tmp/secret.txt
