@@ -20,10 +20,28 @@ jobs:
         with:
           SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
 
+      - name: Extract secret value and create Kubernetes secret file
+        run: |
+          secret_response="${{ steps.secretsafe.outputs.secret }}"
+          secret=$(echo "$secret_response" | jq -r '.value')
+          echo "$secret" > /tmp/secret.txt
+
+      - name: Upload secret file as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: secret-file
+          path: /tmp/secret.txt
+
   deploy-pod:
     runs-on: self-hosted  # Ensure correct runner is specified
     needs: retrieve-secret
     steps:
+      - name: Download secret artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: secret-file
+          path: /tmp
+
       - name: Check current user and validate kubeconfig
         run: |
           whoami
@@ -34,18 +52,16 @@ jobs:
           export KUBECONFIG=$HOME/.kube/config
           kubectl config view
 
-      - name: Extract secret value and create Kubernetes secret
+      - name: Create Kubernetes secret from retrieved file
         run: |
           export KUBECONFIG=$HOME/.kube/config
-          secret_response="${{ steps.secretsafe.outputs.secret }}"
-          secret=$(echo "$secret_response" | jq -r '.value')
-          echo "$secret" > /tmp/secret.txt
           kubectl delete secret vault-secret --ignore-not-found
           kubectl create secret generic vault-secret --from-file=secret.txt=/tmp/secret.txt
-          
+
       - name: Ensure tmp directory exists
         run: |
           mkdir -p /opt/tmp
+
       - name: Create Pod YAML with BeyondTrust container and mounted secret
         run: |
           cat <<EOF > /opt/tmp/vault-test-pod.yaml
