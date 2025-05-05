@@ -29,6 +29,13 @@ jobs:
       - name: Upload secret file as an artifact
         env: 
           API_URL: ${{ vars.API_URL }}
+          VERIFY_CA: ${{ vars.VERIFY_CA }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          CERTIFICATE: ${{ secrets.CERTIFICATE }}
+          CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
+        with:
+          SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
         uses: BeyondTrust/secrets-safe-action@v1
         with:
           name: secret-file
