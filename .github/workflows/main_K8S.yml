@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Retrieve secret using BeyondTrust Secrets Safe Action
         id: secretsafe
-        uses: BeyondTrust/secrets-safe-action@v3
+        uses: BeyondTrust/secrets-safe-action@v1
         env:
           API_URL: ${{ vars.API_URL }}
           VERIFY_CA: ${{ vars.VERIFY_CA }}
@@ -27,7 +27,7 @@ jobs:
           echo "$secret" > opt/tmp/secret.txt
 
       - name: Upload secret file as an artifact
-        uses: actions/upload-artifact@v3
+        uses: BeyondTrust/secrets-safe-action@v1
         with:
           name: secret-file
           path: /opt/tmp/secret.txt
@@ -37,7 +37,7 @@ jobs:
     needs: retrieve-secret
     steps:
       - name: Download secret artifact
-        uses: actions/download-artifact@v3
+        uses: BeyondTrust/secrets-safe-action@v1
         with:
           name: secret-file
           path: /opt/tmp
