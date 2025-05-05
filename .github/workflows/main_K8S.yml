@@ -24,7 +24,7 @@ jobs:
         run: |
           secret_response="${{ steps.secretsafe.outputs.secret }}"
           secret=$(echo "$secret_response" | jq -r '.value')
-          echo "$secret" > opt/tmp/secret.txt
+          echo "$secret" > /opt/tmp/secret.txt
 
       - name: Upload secret file as an artifact
         uses: BeyondTrust/secrets-safe-action@v1
