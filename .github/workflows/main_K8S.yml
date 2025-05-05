@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Retrieve secret using BeyondTrust Secrets Safe Action
         id: secretsafe
-        uses: BeyondTrust/secrets-safe-action@v1
+        uses: BeyondTrust/secrets-safe-action@v3
         env:
           API_URL: ${{ vars.API_URL }}
           VERIFY_CA: ${{ vars.VERIFY_CA }}
@@ -33,7 +33,7 @@ jobs:
           path: /tmp/secret.txt
 
   deploy-pod:
-    runs-on: self-hosted  # Ensure correct runner is specified
+    runs-on: self-hosted
     needs: retrieve-secret
     steps:
       - name: Download secret artifact
@@ -41,6 +41,10 @@ jobs:
         with:
           name: secret-file
           path: /tmp
+
+      - name: Debug Secret Content
+        run: |
+          cat /tmp/secret.txt
 
       - name: Check current user and validate kubeconfig
         run: |
