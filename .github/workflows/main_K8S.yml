@@ -24,11 +24,12 @@ jobs:
     runs-on: self-hosted
     needs: retrieve-secret
     env:
-      KUBECONFIG: /etc/kubernetes/admin.conf
+      KUBECONFIG: $HOME/.kube/config
     steps:
-      - name: Check current user
+      - name: Check current user and validate kubeconfig
         run: |
           whoami
+          ls -l $HOME/.kube/config
 
       - name: Extract secret value and create Kubernetes secret
         run: |
