@@ -36,10 +36,6 @@ jobs:
           CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
         with:
           SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
-        uses: BeyondTrust/secrets-safe-action@v1
-        with:
-          name: secret-file
-          path: /opt/tmp/secret.txt
 
   deploy-pod:
     runs-on: self-hosted
