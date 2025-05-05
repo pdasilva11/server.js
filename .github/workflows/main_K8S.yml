@@ -18,8 +18,12 @@ jobs:
           CERTIFICATE: ${{ secrets.CERTIFICATE }}
           CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
         with:
-          SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
+          SECRET_PATH: '{"path": "nav/test", "output_id": "test"}'
 
+  deploy-pod:
+    runs-on: self-hosted
+    needs: retrieve-secret
+    steps:
       - name: Extract secret value and create Kubernetes secret
         run: |
           secret_response="${{ steps.secretsafe.outputs.secret }}"
@@ -28,10 +32,6 @@ jobs:
           kubectl delete secret vault-secret --ignore-not-found
           kubectl create secret generic vault-secret --from-file=secret.txt=/tmp/secret.txt
 
-  deploy-pod:
-    runs-on: self-hosted
-    needs: retrieve-secret
-    steps:
       - name: Create Pod YAML with BeyondTrust container and mounted secret
         run: |
           cat <<EOF > /opt/tmp/vault-test-pod.yaml
