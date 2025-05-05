@@ -31,7 +31,7 @@ jobs:
 
       - name: Create Pod YAML with BeyondTrust container and mounted secret
         run: |
-          cat <<EOF | sudo tee /opt/tmp/vault-test-pod.yaml > /dev/null
+cat <<EOF > /opt/tmp/vault-test-pod.yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -62,7 +62,6 @@ EOF
 
       - name: Confirm YAML file exists
         run: |
-          ls -l /opt/tmp/vault-test-pod.yaml
           cat /opt/tmp/vault-test-pod.yaml
 
       - name: Deploy Pod using kubectl
