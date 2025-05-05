@@ -21,7 +21,7 @@ jobs:
           SECRET_PATH: '{"path": "nav/test", "output_id": "test"}'
 
   deploy-pod:
-    runs-on: master-node  # Ensure correct runner is specified
+    runs-on: self-hosted  # Ensure correct runner is specified
     needs: retrieve-secret
     steps:
       - name: Check current user and validate kubeconfig
