@@ -42,7 +42,8 @@ jobs:
           echo "$secret" > /tmp/secret.txt
           kubectl delete secret vault-secret --ignore-not-found
           kubectl create secret generic vault-secret --from-file=secret.txt=/tmp/secret.txt
-       - name: Ensure tmp directory exists
+          
+      - name: Ensure tmp directory exists
         run: |
           mkdir -p /opt/tmp
       - name: Create Pod YAML with BeyondTrust container and mounted secret
