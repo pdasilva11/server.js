@@ -21,18 +21,22 @@ jobs:
           SECRET_PATH: '{"path": "nav/test", "output_id": "test"}'
 
   deploy-pod:
-    runs-on: self-hosted
+    runs-on: master-node  # Ensure correct runner is specified
     needs: retrieve-secret
-    env:
-      KUBECONFIG: $HOME/.kube/config
     steps:
       - name: Check current user and validate kubeconfig
         run: |
           whoami
           ls -l $HOME/.kube/config
 
+      - name: Set KUBECONFIG and Verify Kubernetes Config
+        run: |
+          export KUBECONFIG=$HOME/.kube/config
+          kubectl config view
+
       - name: Extract secret value and create Kubernetes secret
         run: |
+          export KUBECONFIG=$HOME/.kube/config
           secret_response="${{ steps.secretsafe.outputs.secret }}"
           secret=$(echo "$secret_response" | jq -r '.value')
           echo "$secret" > /tmp/secret.txt
@@ -76,4 +80,5 @@ jobs:
 
       - name: Deploy Pod using kubectl
         run: |
+          export KUBECONFIG=$HOME/.kube/config
           kubectl apply -f /opt/tmp/vault-test-pod.yaml
