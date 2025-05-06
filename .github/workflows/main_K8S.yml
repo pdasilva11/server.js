@@ -14,19 +14,24 @@ jobs:
       CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
       CERTIFICATE: ${{ secrets.CERTIFICATE }}
       CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
-      SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Extract DEPLOY_KEY from SECRET_PATH
-        id: extract_key
+      - name: Retrieve DEPLOY_KEY from BeyondTrust
+        id: secretsafe
+        uses: BeyondTrust/secrets-safe-action@v1
+        with:
+          SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
+
+      - name: Extract and Save Secret
         run: |
-          echo "Extracting DEPLOY_KEY from SECRET_PATH..."
-          DEPLOY_KEY=$(echo "$SECRET_PATH" | jq -r .output_id)
-          echo "DEPLOY_KEY=$DEPLOY_KEY" >> $GITHUB_ENV
-          echo "$DEPLOY_KEY" > /opt/tmp/secret.txt
+          mkdir -p /opt/tmp  # Ensure the directory exists
+          secret_response="${{ steps.secretsafe.outputs.secret }}"
+          secret=$(echo "$secret_response" | jq -r '.value')
+          echo "$secret" > /opt/tmp/secret.txt
+
       - name: Debug Secret Content
         run: |
           echo "Secret content:"
@@ -42,10 +47,15 @@ jobs:
           export KUBECONFIG=$HOME/.kube/config
           kubectl config view
 
-      - name: Create Kubernetes secret from retrieved file
+      - name: Verify Kubernetes Secret Before Creating
         run: |
           export KUBECONFIG=$HOME/.kube/config
-          kubectl delete secret vault-secret --ignore-not-found
+          if kubectl get secret vault-secret > /dev/null 2>&1; then
+            echo "Kubernetes secret exists, deleting..."
+            kubectl delete secret vault-secret
+          else
+            echo "Kubernetes secret does not exist, creating..."
+          fi
           kubectl create secret generic vault-secret --from-file=secret.txt=/opt/tmp/secret.txt
 
       - name: Create Pod YAML with BeyondTrust container and mounted secret
