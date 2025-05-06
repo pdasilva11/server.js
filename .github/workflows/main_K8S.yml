@@ -32,7 +32,7 @@ jobs:
 
       - name: Validate and Extract Secret
         run: |
-        mkdir -p /opt/tmp  # Ensure the directory exists
+        
         secret_response="${{ steps.secretsafe.outputs.docker }}"
 
     # Check if secret_response is empty or invalid
