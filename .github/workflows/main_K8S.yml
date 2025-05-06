@@ -1,3 +1,4 @@
+
 name: Vault Secret to Mounted File in Pod
 
 on:
@@ -94,3 +95,5 @@ jobs:
 
       - name: Deploy Pod using kubectl
         run: |
+          export KUBECONFIG=$HOME/.kube/config
+          kubectl apply -f /opt/tmp/vault-test-pod.yaml
