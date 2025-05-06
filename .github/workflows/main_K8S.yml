@@ -14,6 +14,9 @@ jobs:
       CERTIFICATE: ${{ secrets.CERTIFICATE }}
       CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
     steps:
+      - name: Checkout repo (required to access GitHub context)
+        uses: actions/checkout@v3
+
       - name: Retrieve secret using BeyondTrust Secrets Safe Action
         id: secretsafe
         uses: BeyondTrust/secrets-safe-action@v1
@@ -22,10 +25,9 @@ jobs:
 
       - name: Extract secret value and create Kubernetes secret file
         run: |
-          mkdir -p /opt/tmp  # Ensure the directory exists
+          mkdir -p /opt/tmp
           secret_response="${{ steps.secretsafe.outputs.secret }}"
-          secret=$(echo "$secret_response" | jq -r '.value')
-          echo "$secret" > /opt/tmp/secret.txt
+          echo "$secret_response" | jq -r '.value' > /opt/tmp/secret.txt
 
       - name: Upload secret file as an artifact
         uses: actions/upload-artifact@v3
@@ -37,6 +39,9 @@ jobs:
     runs-on: self-hosted
     needs: retrieve-secret
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
       - name: Download secret artifact
         uses: actions/download-artifact@v3
         with:
@@ -44,18 +49,7 @@ jobs:
           path: /opt/tmp
 
       - name: Debug Secret Content
-        run: |
-          cat /opt/tmp/secret.txt
-
-      - name: Check current user and validate kubeconfig
-        run: |
-          whoami
-          ls -l $HOME/.kube/config
-
-      - name: Set KUBECONFIG and Verify Kubernetes Config
-        run: |
-          export KUBECONFIG=$HOME/.kube/config
-          kubectl config view
+        run: cat /opt/tmp/secret.txt
 
       - name: Create Kubernetes secret from retrieved file
         run: |
@@ -63,12 +57,9 @@ jobs:
           kubectl delete secret vault-secret --ignore-not-found
           kubectl create secret generic vault-secret --from-file=secret.txt=/opt/tmp/secret.txt
 
-      - name: Ensure tmp directory exists
+      - name: Create Pod YAML
         run: |
           mkdir -p /opt/tmp
-
-      - name: Create Pod YAML with BeyondTrust container and mounted secret
-        run: |
           cat <<EOF > /opt/tmp/vault-test-pod.yaml
           apiVersion: v1
           kind: Pod
@@ -94,15 +85,11 @@ jobs:
             volumes:
             - name: jpt-vol
               hostPath:
-                path: /data  # Replace with your actual local path
+                path: /data
                 type: Directory
           EOF
 
-      - name: Confirm YAML file exists
-        run: |
-          cat /opt/tmp/vault-test-pod.yaml
-
-      - name: Deploy Pod using kubectl
+      - name: Deploy Pod
         run: |
           export KUBECONFIG=$HOME/.kube/config
           kubectl apply -f /opt/tmp/vault-test-pod.yaml
