@@ -31,10 +31,11 @@ jobs:
           echo "${{ steps.secretsafe.outputs.docker }}"
 
       
-      - name: Inspect Secret Output
+      - name: Dump all outputs from BeyondTrust action
         run: |
-          echo "Secret output as received from secretsafe:"
-          echo '${{ steps.secretsafe.outputs.docker }}'
+          echo "Available outputs from secretsafe step:"
+          echo "${{ toJSON(steps.secretsafe.outputs) }}"
+
 
 
       - name: Debug Secret Content
