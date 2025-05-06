@@ -6,17 +6,17 @@ on:
 jobs:
   retrieve-secret:
     runs-on: ubuntu-latest
+    env:
+      API_URL: ${{ vars.API_URL }}
+      VERIFY_CA: ${{ vars.VERIFY_CA }}
+      CLIENT_ID: ${{ secrets.CLIENT_ID }}
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      CERTIFICATE: ${{ secrets.CERTIFICATE }}
+      CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
     steps:
       - name: Retrieve secret using BeyondTrust Secrets Safe Action
         id: secretsafe
         uses: BeyondTrust/secrets-safe-action@v1
-        env:
-          API_URL: ${{ vars.API_URL }}
-          VERIFY_CA: ${{ vars.VERIFY_CA }}
-          CLIENT_ID: ${{ secrets.CLIENT_ID }}
-          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-          CERTIFICATE: ${{ secrets.CERTIFICATE }}
-          CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
         with:
           SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
 
@@ -26,23 +26,19 @@ jobs:
           secret_response="${{ steps.secretsafe.outputs.secret }}"
           secret=$(echo "$secret_response" | jq -r '.value')
           echo "$secret" > /opt/tmp/secret.txt
+
       - name: Upload secret file as an artifact
-        env: 
-          API_URL: ${{ vars.API_URL }}
-          VERIFY_CA: ${{ vars.VERIFY_CA }}
-          CLIENT_ID: ${{ secrets.CLIENT_ID }}
-          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-          CERTIFICATE: ${{ secrets.CERTIFICATE }}
-          CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
+        uses: actions/upload-artifact@v3
         with:
-          SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
+          name: secret-file
+          path: /opt/tmp/secret.txt
 
   deploy-pod:
     runs-on: self-hosted
     needs: retrieve-secret
     steps:
       - name: Download secret artifact
-        uses: BeyondTrust/secrets-safe-action@v1
+        uses: actions/download-artifact@v3
         with:
           name: secret-file
           path: /opt/tmp
@@ -65,7 +61,7 @@ jobs:
         run: |
           export KUBECONFIG=$HOME/.kube/config
           kubectl delete secret vault-secret --ignore-not-found
-          kubectl create secret generic vault-secret --from-file=secret.txt=/tmp/secret.txt
+          kubectl create secret generic vault-secret --from-file=secret.txt=/opt/tmp/secret.txt
 
       - name: Ensure tmp directory exists
         run: |
