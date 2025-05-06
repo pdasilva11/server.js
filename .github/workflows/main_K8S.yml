@@ -60,7 +60,7 @@ jobs:
           apiVersion: apps/v1
           kind: Deployment
           metadata:
-            name: jumpoint-deployment
+            name: jumpoint-docker-deploy
             namespace: default
           spec:
             replicas: 1
