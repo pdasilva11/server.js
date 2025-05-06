@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  retrieve-secret:
-    runs-on: ubuntu-latest
+  retrieve-and-deploy:
+    runs-on: self-hosted
+
     env:
       API_URL: ${{ vars.API_URL }}
       VERIFY_CA: ${{ vars.VERIFY_CA }}
@@ -13,8 +14,9 @@ jobs:
       CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
       CERTIFICATE: ${{ secrets.CERTIFICATE }}
       CERTIFICATE_KEY: ${{ secrets.CERTIFICATE_KEY }}
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Retrieve secret using BeyondTrust Secrets Safe Action
@@ -23,33 +25,15 @@ jobs:
         with:
           SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
 
-      - name: Extract secret value and create Kubernetes secret file
+      - name: Extract secret value and create secret file
         run: |
           mkdir -p /opt/tmp
           secret_response="${{ steps.secretsafe.outputs.secret }}"
           echo "$secret_response" | jq -r '.value' > /opt/tmp/secret.txt
 
-      - name: Upload secret file as an artifact
-        uses: actions/upload-artifact@v3.1.3
-        with:
-          name: secret-file
-          path: /opt/tmp/secret.txt
-
-  deploy-pod:
-    runs-on: self-hosted
-    needs: retrieve-secret
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Download secret artifact
-        uses: actions/download-artifact@v3.0.2
-        with:
-          name: secret-file
-          path: /opt/tmp
-
       - name: Debug Secret Content
         run: |
+          echo "Secret content:"
           cat /opt/tmp/secret.txt
 
       - name: Check current user and validate kubeconfig
@@ -67,10 +51,6 @@ jobs:
           export KUBECONFIG=$HOME/.kube/config
           kubectl delete secret vault-secret --ignore-not-found
           kubectl create secret generic vault-secret --from-file=secret.txt=/opt/tmp/secret.txt
-
-      - name: Ensure tmp directory exists
-        run: |
-          mkdir -p /opt/tmp
 
       - name: Create Pod YAML with BeyondTrust container and mounted secret
         run: |
@@ -111,4 +91,3 @@ jobs:
         run: |
           export KUBECONFIG=$HOME/.kube/config
           kubectl apply -f /opt/tmp/vault-test-pod.yaml
-
