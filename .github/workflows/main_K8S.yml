@@ -32,21 +32,28 @@ jobs:
 
       - name: Validate and Extract Secret
         run: |
-          mkdir -p /opt/tmp  # Ensure the directory exists
-          secret_response="${{ steps.secretsafe.outputs.docker }}"
+        mkdir -p /opt/tmp  # Ensure the directory exists
+        secret_response="${{ steps.secretsafe.outputs.docker }}"
 
-          # Check if secret_response is empty
-          if [ -z "$secret_response" ]; then
-            echo "Error: Secret response is empty!"
+    # Check if secret_response is empty or invalid
+        if [ -z "$secret_response" ]; then
+          echo "Error: Secret response is empty!"
             exit 1
-          fi
+        fi
 
-          # Validate JSON format before parsing
-          echo "$secret_response" | jq empty || { echo "Invalid JSON format!"; exit 1; }
+         # Verify JSON format before parsing
+        echo "$secret_response" | jq empty >/dev/null 2>&1 || { echo "Invalid JSON format!"; exit 1; }
 
-          # Extract secret value
-          secret=$(echo "$secret_response" | jq -r '.value')
-          echo "$secret" > /opt/tmp/secret.txt
+        secret=$(echo "$secret_response" | jq -r '.value')
+        echo "$secret" > /opt/tmp/secret.txt
+
+
+        # Validate JSON format before parsing
+        echo "$secret_response" | jq empty || { echo "Invalid JSON format!"; exit 1; }
+
+        # Extract secret value
+        secret=$(echo "$secret_response" | jq -r '.value')
+        echo "$secret" > /opt/tmp/secret.txt
 
       - name: Debug Secret Content
         run: |
