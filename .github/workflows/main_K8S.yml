@@ -1,5 +1,4 @@
-
-name: Vault Secret to Mounted File in Pod
+name: Vault Secret to Mounted File in Deployment
 
 on:
   workflow_dispatch:
@@ -36,7 +35,6 @@ jobs:
           echo "$secret" > /opt/tmp/secret.txt
           echo "✅ Secret written to /opt/tmp/secret.txt"
 
-
       - name: Check current user and validate kubeconfig
         run: |
           whoami
@@ -53,47 +51,54 @@ jobs:
           if kubectl get secret vault-secret > /dev/null 2>&1; then
             echo "Kubernetes secret exists, deleting..."
             kubectl delete secret vault-secret
-          else
-            echo "Kubernetes secret does not exist, creating..."
           fi
           kubectl create secret generic vault-secret --from-file=secret.txt=/opt/tmp/secret.txt
 
-      - name: Create Pod YAML with BeyondTrust container and mounted secret
+      - name: Create Deployment YAML with BeyondTrust container and mounted secret
         run: |
-          cat <<EOF > /opt/tmp/vault-test-pod.yaml
-          apiVersion: v1
-          kind: Pod
+          cat <<EOF > /opt/tmp/vault-test-deployment.yaml
+          apiVersion: apps/v1
+          kind: Deployment
           metadata:
-            name: jumpoint-pod
+            name: jumpoint-deployment
             namespace: default
           spec:
-            containers:
-            - name: jumpoint-name
-              image: beyondtrust/sra-jumpoint:1cd9128ba1
-              env:
-              - name: DEPLOY_KEY
-                valueFrom:
-                  secretKeyRef:
-                    name: vault-secret
-                    key: secret.txt
-              volumeMounts:
-              - name: jpt-vol
-                mountPath: /jpt
-              securityContext:
-                capabilities:
-                  add: ["IPC_LOCK"]
-            volumes:
-            - name: jpt-vol
-              hostPath:
-                path: /data
-                type: Directory
+            replicas: 1
+            selector:
+              matchLabels:
+                app: jumpoint
+            template:
+              metadata:
+                labels:
+                  app: jumpoint
+              spec:
+                containers:
+                - name: jumpoint-name
+                  image: beyondtrust/sra-jumpoint:1cd9128ba1
+                  env:
+                  - name: DEPLOY_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: vault-secret
+                        key: secret.txt
+                  volumeMounts:
+                  - name: jpt-vol
+                    mountPath: /jpt
+                  securityContext:
+                    capabilities:
+                      add: ["IPC_LOCK"]
+                volumes:
+                - name: jpt-vol
+                  hostPath:
+                    path: /data
+                    type: Directory
           EOF
 
       - name: Confirm YAML file exists
         run: |
-          cat /opt/tmp/vault-test-pod.yaml
+          cat /opt/tmp/vault-test-deployment.yaml
 
-      - name: Deploy Pod using kubectl
+      - name: Deploy to Kubernetes
         run: |
           export KUBECONFIG=$HOME/.kube/config
-          kubectl apply -f /opt/tmp/vault-test-pod.yaml
+          kubectl apply -f /opt/tmp/vault-test-deployment.yaml
