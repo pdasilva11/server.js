@@ -24,7 +24,7 @@ jobs:
         id: extract_key
         run: |
           echo "Extracting DEPLOY_KEY from SECRET_PATH..."
-          DEPLOY_KEY=$(echo "$SECRET_PATH" | jq -r .path)
+          DEPLOY_KEY=$(echo "$SECRET_PATH" | jq -r .output_id)
           echo "DEPLOY_KEY=$DEPLOY_KEY" >> $GITHUB_ENV
           echo "DEPLOY_KEY=$DEPLOY_KEY" > /opt/tmp/secret.txt
 
