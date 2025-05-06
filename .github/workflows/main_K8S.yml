@@ -25,23 +25,16 @@ jobs:
         with:
           SECRET_PATH: '{"path": "nav/docker", "output_id": "docker"}'
 
-      - name: Debug Raw Secret Response
+      - name: Write DEPLOY_KEY secret to file
         run: |
-          echo "Raw Secret Response:"
-          echo "${{ steps.secretsafe.outputs.docker }}"
+          secret="${{ steps.secretsafe.outputs.docker }}"
+          if [ -z "$secret" ]; then
+            echo "❌ Error: Secret is empty!"
+            exit 1
+          fi
+          echo "$secret" > /opt/tmp/secret.txt
+          echo "✅ Secret written to /opt/tmp/secret.txt"
 
-      
-      - name: Dump all outputs from BeyondTrust action
-        run: |
-          echo "Available outputs from secretsafe step:"
-          echo "${{ toJSON(steps.secretsafe.outputs) }}"
-
-
-
-      - name: Debug Secret Content
-        run: |
-          echo "Secret content:"
-          cat /opt/tmp/secret.txt
 
       - name: Check current user and validate kubeconfig
         run: |
