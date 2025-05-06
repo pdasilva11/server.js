@@ -28,7 +28,7 @@ jobs:
       - name: Extract and Save Secret
         run: |
           mkdir -p /opt/tmp  # Ensure the directory exists
-          secret_response="${{ steps.secretsafe.outputs.secret }}"
+          secret_response="${{ steps.secretsafe.outputs.docker }}"
           secret=$(echo "$secret_response" | jq -r '.value')
           echo "$secret" > /opt/tmp/secret.txt
 
